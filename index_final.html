@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Letter For You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #c9a96e;
+    --gold-light: #e8d5b0;
+    --rose: #d4889a;
+    --rose-light: #f0c8d0;
+    --ink: #1a1410;
+    --paper: #faf6ef;
+    --paper-edge: #ede4d4;
+    --bg: #0c0e13;
+    --bg2: #13161e;
+    --text-dim: #7a7060;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--gold-light);
+    font-family: 'EB Garamond', Georgia, serif;
+    overflow-x: hidden;
+  }
+
+  /* ── Stars background ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 12% 18%, rgba(201,169,110,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 34% 72%, rgba(201,169,110,0.25) 0%, transparent 100%),
+      radial-gradient(1px 1px at 67% 25%, rgba(212,136,154,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 81% 60%, rgba(201,169,110,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 88%, rgba(212,136,154,0.25) 0%, transparent 100%),
+      radial-gradient(1px 1px at 8%  55%, rgba(201,169,110,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 92% 10%, rgba(201,169,110,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 47% 42%, rgba(255,255,255,0.15) 0%, transparent 100%),
+      radial-gradient(1px 1px at 23% 90%, rgba(201,169,110,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 76% 78%, rgba(212,136,154,0.2) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Vignette ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Layout ── */
+  #app {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  /* ── Lock screen ── */
+  #lock-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+    max-width: 560px;
+    width: 100%;
+    animation: fadeUp 1.2s ease both;
+  }
+
+  .eyebrow {
+    font-family: 'EB Garamond', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    animation: fadeUp 1.2s 0.1s ease both;
+  }
+
+  .title-block {
+    text-align: center;
+    animation: fadeUp 1.2s 0.2s ease both;
+  }
+
+  .title-block h1 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    font-weight: 400;
+    color: var(--gold-light);
+    line-height: 1.15;
+    margin-bottom: 0.5rem;
+  }
+
+  .title-block h1 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+
+  .title-block p {
+    font-size: 1.05rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* ── Wax seal ── */
+  .seal-wrap {
+    position: relative;
+    animation: fadeUp 1.2s 0.3s ease both;
+  }
+
+  .seal {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 38%, #9c2a38, #6b1a24);
+    border: 3px solid #b03342;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: rgba(255,220,200,0.85);
+    box-shadow:
+      0 0 0 6px rgba(107,26,36,0.25),
+      0 8px 32px rgba(0,0,0,0.6),
+      inset 0 2px 6px rgba(255,150,120,0.15);
+    cursor: default;
+    user-select: none;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .seal:hover {
+    transform: scale(1.04);
+  }
+
+  .seal-glow {
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(180,50,60,0.18) 0%, transparent 70%);
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+
+  /* ── Cipher preview ── */
+  .cipher-preview {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,169,110,0.12);
+    border-radius: 6px;
+    padding: 1.2rem 1.5rem;
+    width: 100%;
+    animation: fadeUp 1.2s 0.4s ease both;
+  }
+
+  .cipher-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.6rem;
+  }
+
+  .cipher-text {
+    font-family: 'Courier New', monospace;
+    font-size: 0.72rem;
+    color: rgba(201,169,110,0.4);
+    line-height: 1.7;
+    word-break: break-all;
+    max-height: 80px;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+  }
+
+  /* ── Key input ── */
+  .key-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    animation: fadeUp 1.2s 0.5s ease both;
+  }
+
+  .key-label {
+    font-size: 0.82rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  .key-row {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  #key-input {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,169,110,0.25);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    color: var(--gold-light);
+    font-family: 'EB Garamond', serif;
+    font-size: 1.05rem;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    letter-spacing: 0.1em;
+  }
+
+  #key-input:focus {
+    border-color: rgba(201,169,110,0.55);
+    background: rgba(255,255,255,0.06);
+  }
+
+  #key-input::placeholder {
+    color: rgba(201,169,110,0.25);
+  }
+
+  #unlock-btn {
+    background: transparent;
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+    padding: 0.75rem 1.4rem;
+    color: var(--gold);
+    font-family: 'EB Garamond', serif;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+  }
+
+  #unlock-btn:hover {
+    background: var(--gold);
+    color: var(--ink);
+  }
+
+  #error-msg {
+    text-align: center;
+    font-size: 0.88rem;
+    color: var(--rose);
+    opacity: 0;
+    transition: opacity 0.3s;
+    min-height: 1.2em;
+  }
+
+  #error-msg.visible { opacity: 1; }
+
+  .hint {
+    text-align: center;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    font-style: italic;
+    line-height: 1.6;
+    animation: fadeUp 1.2s 0.6s ease both;
+  }
+
+  .hint a {
+    color: var(--rose);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(212,136,154,0.3);
+    transition: border-color 0.2s;
+  }
+
+  .hint a:hover { border-color: var(--rose); }
+
+  /* ── Letter screen ── */
+  #letter-screen {
+    display: none;
+    max-width: 640px;
+    width: 100%;
+    animation: letterReveal 1s ease both;
+  }
+
+  @keyframes letterReveal {
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .letter-paper {
+    background: var(--paper);
+    border-radius: 2px;
+    padding: clamp(2rem, 6vw, 3.5rem) clamp(1.8rem, 6vw, 3.5rem);
+    box-shadow:
+      0 2px 0 var(--paper-edge),
+      0 4px 0 rgba(0,0,0,0.15),
+      0 20px 60px rgba(0,0,0,0.7),
+      0 60px 120px rgba(0,0,0,0.4);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .letter-paper::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--rose) 0%, var(--gold) 50%, var(--rose) 100%);
+    opacity: 0.6;
+  }
+
+  .letter-header {
+    text-align: center;
+    margin-bottom: 2.2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--paper-edge);
+  }
+
+  .letter-seal-small {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 38%, #9c2a38, #6b1a24);
+    border: 2px solid #b03342;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  .letter-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 0.25rem;
+  }
+
+  .letter-header h2 em { font-style: italic; }
+
+  .letter-date {
+    font-size: 0.82rem;
+    color: #a09070;
+    letter-spacing: 0.1em;
+  }
+
+  .letter-body {
+    font-size: 1.08rem;
+    color: #2a2018;
+    line-height: 1.85;
+  }
+
+  .letter-body p {
+    margin-bottom: 1.1em;
+    white-space: pre-wrap;
+  }
+
+  .letter-body p:last-child { margin-bottom: 0; }
+
+  .letter-sign {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--paper-edge);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: #3a2c1e;
+  }
+
+  .letter-sign .regards { font-size: 0.85rem; color: #a09070; margin-bottom: 0.3rem; }
+  .letter-sign .sig { font-style: italic; font-size: 1.4rem; color: var(--ink); }
+
+  .flowers {
+    display: flex;
+    gap: 6px;
+    margin-top: 0.6rem;
+    font-size: 1.2rem;
+  }
+
+  /* ── Lock again button ── */
+  #lock-again {
+    margin-top: 1.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'EB Garamond', serif;
+    font-size: 0.88rem;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: color 0.2s;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  #lock-again:hover { color: var(--gold); }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Shake on wrong key ── */
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+  }
+
+  .shake { animation: shake 0.45s ease; }
+
+  /* ── Unlock flash ── */
+  #flash {
+    position: fixed;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+    transition: opacity 0.15s ease;
+  }
+
+  #flash.active { opacity: 0.08; }
+</style>
+</head>
+<body>
+
+<div id="flash"></div>
+
+<div id="app">
+
+  <!-- LOCK SCREEN -->
+  <div id="lock-screen">
+    <span class="eyebrow">A letter awaits you</span>
+
+    <div class="title-block">
+      <h1>Sealed</h1>
+      <p>This message is encrypted.<br>Contact the sender for the key.</p>
+    </div>
+
+    <div class="seal-wrap">
+      <div class="seal-glow"></div>
+      <div class="seal">✦</div>
+    </div>
+
+    <div class="cipher-preview">
+      <div class="cipher-label">Encrypted contents</div>
+      <div class="cipher-text" id="cipher-display"></div>
+    </div>
+
+    <div class="key-form">
+      <div class="key-label">Enter decryption key</div>
+      <div class="key-row">
+        <input type="password" id="key-input" placeholder="key..." autocomplete="off" spellcheck="false">
+        <button id="unlock-btn" onclick="tryUnlock()">Unlock →</button>
+      </div>
+      <div id="error-msg">Wrong key. Ask the sender for the correct one.</div>
+    </div>
+
+    <p class="hint">
+      Don't have the key? <a href="https://www.linkedin.com/in/shajanalam/" target="_blank">Contact the sender</a><br>
+      to receive what was left for you.
+    </p>
+  </div>
+
+  <!-- LETTER SCREEN -->
+  <div id="letter-screen">
+    <div class="letter-paper">
+      <div class="letter-header">
+        <div class="letter-seal-small">✦</div>
+        <h2>For <em>you</em></h2>
+        <div class="letter-date">On the occasion of your graduation</div>
+      </div>
+      <div class="letter-body" id="letter-content"></div>
+      <div class="letter-sign">
+        <div class="regards">Regards,</div>
+        <div class="sig">Mula</div>
+      </div>
+    </div>
+  </div>
+    <button id="lock-again" onclick="lockAgain()">seal the letter again</button>
+  </div>
+
+</div>
+
+<script>
+const CIPHERTEXT = "U2FsdGVkX19eoX+jOmhg3lrYO7AXP0iM2pRSxM064sf8LeFyAT16uge+vyKQvR0V1bwVawPaDJb7Xn9I7iGfViLnK2wkDEC9446TrTjhTaPfMAP28RdwMXGSojeAqw94AAvvfIxG0eHH/rHgDkj+gfUGqQBqivNEiXdUkrrOXObQ0P5RdF4ED9nHg+HWD8zLbwONSDfOH3+S3RJt6y1dLngz00LshLVup7DG2OvugS/2rBOJLnLyPHdy+HQjf1o9WBt6VVzu7kFhr+dNqueHnQu8b/lSvlOuAT37N4FFicRGDEIqIhF7qRLnZ4imWj4gDOCo8ANDBS6iOW2/9OR4b66DlQQ8BDQbi0UYVEAlD7aiemasLPv9PTzinSEqJL+8rhCoOOzUPzTiRNXW5s95OQtjIZRahwbTO8e7oknwP5/nniTB2YZK+Hr58rJ0V6IfD3kwdLMWIhGvgF327zsFlj+kNzShm0h0wpj/Vok321vXIlP4ZnMzEn1zFoHbqrAC+wSow36WWKEfQFdYv4sgOWHTSPYylBCRmamVh6x57VS/8klTJ05lbOnG50ng7M/legjH4+WkKjKYUEP8pl5D8aKjm6qlOvU/L34qRYiatFGIXVf1L1TnDejBeFiQH4QSuyw9F9Bj50JKKzHgLAhMndOuvbdN41etnusvGuzl1CUXbOs2ezCp1ilabT5tssNTXdzTrwoqMq04dfAtMpH+So2PvTtMDVJHK7AawkAnqj53IE1WZodpE+KzTSCrY+SmUQ3/1YRbCgK5nhan+Ok2a+nVJtY8sg95rFEAw0Uy5+uKaY89EdFmdw4nnIoFTwPjNr2yXF+Me3EaDbLoX3TI8QOY5liuH+GrSkBYkPHUFTW4EZ1i9xn3ErG41nqODa7s8BhEsCU+gSQkCIxabyC7uhqcfNY46vsQBgds8AQb5oHP44Zqw64hoisx5NbT0tAN8A5yPJQ/5U46fGvLdQnUDnAG3nw53WPJL6T3VZgJakow4jCqj3D0gJyIOhFdwWOs9crHa8cSTGGNurQJkWsf7Z10vrPARWtV4LDyuVOciknhxE2Z7rSb9jN+G5zDSHKQFylwV7wxD25OrKwIJVZPD/OwL0hics76qRdxWRdyMdSRNhfLzEQyATktRz3xail6HpzDdJcN+wdAkcT/h2cS2cSEU9UXxr1Uoy7U6EY4xX20MAoBx77iZX4NJM19vWv+oiwJ0qqnUqUBN7E6zEO+/+l7qRgTIdhQURhvZ8fgvCbvvN1fmEEklmBfK7Z7TL7qbQYBT5a/rpinJQrzrrdcrS2gwtopinUp43JLXfOiCMpjRg0CPqoBINJjn1xwve3hRbjD8dMiX69elBkY2oBu2ttitfBZW2XqlgHedddM5Ed3+TAMDsa4D41F3ASAN6e5V+ZfrU5gXpYKJndmAluw5z3OTFTeWHbgqQoaIYLxPQaDwzIbRZn/xeRR879l2XqBeiuTGoxCBn4G8M30u7cxqk94Pstac5MI902UzjLcCwftbbGTMv5Ng0PLSEUo//BRXs1qNkv2w6iQ5u4Sy/nDR2lKqLJAX9pWtEhaTjP5aaISddA2MZyosfI8S9+g5SoYwuBaxYB4UoRGKC58ducmZXePyGSCGu7sXJgFVTl4wLzm9XtgZaHANwn491a0m1p8DUVgNbU2zxgv8RcrZLR8gC1Y1o/8Hd5RYvtpgEfPFP010uzk4esYF1hAXmtkQ7/gh2KoPZ9UaRIWvdKhaAj00Q==";
+
+document.getElementById('cipher-display').textContent = CIPHERTEXT;
+
+document.getElementById('key-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') tryUnlock();
+});
+
+function tryUnlock() {
+  const key = document.getElementById('key-input').value.trim();
+  if (!key) return;
+
+  try {
+    const decrypted = CryptoJS.AES.decrypt(CIPHERTEXT, key);
+    const text = decrypted.toString(CryptoJS.enc.Utf8);
+
+    if (!text || text.length < 10) throw new Error('bad key');
+
+    showLetter(text);
+  } catch {
+    const form = document.querySelector('.key-form');
+    form.classList.remove('shake');
+    void form.offsetWidth;
+    form.classList.add('shake');
+    const err = document.getElementById('error-msg');
+    err.classList.add('visible');
+    setTimeout(() => err.classList.remove('visible'), 3500);
+  }
+}
+
+function showLetter(text) {
+  // Flash effect
+  const flash = document.getElementById('flash');
+  flash.classList.add('active');
+  setTimeout(() => flash.classList.remove('active'), 200);
+
+  // Split into paragraphs and render
+  const lines = text.split('\n');
+  const container = document.getElementById('letter-content');
+  container.innerHTML = '';
+  lines.forEach(line => {
+    const p = document.createElement('p');
+    p.textContent = line;
+    if (!line.trim()) p.style.marginBottom = '0.4em';
+    container.appendChild(p);
+  });
+
+  // Swap screens
+  setTimeout(() => {
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('letter-screen').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 180);
+}
+
+function lockAgain() {
+  document.getElementById('letter-screen').style.display = 'none';
+  document.getElementById('lock-screen').style.display = 'flex';
+  document.getElementById('key-input').value = '';
+  window.scrollTo({ top: 0 });
+}
+</script>
+</body>
+</html>
